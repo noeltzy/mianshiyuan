@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tzy.mianshiyuan.mapper.ReviewMapper">
+
+    <resultMap id="BaseResultMap" type="com.tzy.mianshiyuan.model.domain.Review">
+            <id property="id" column="id" />
+            <result property="contentId" column="content_id" />
+            <result property="contentType" column="content_type" />
+            <result property="reviewerId" column="reviewer_id" />
+            <result property="reviewerType" column="reviewer_type" />
+            <result property="result" column="result" />
+            <result property="comments" column="comments" />
+            <result property="deleted" column="deleted" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,content_id,content_type,reviewer_id,reviewer_type,result,
+        comments,deleted,created_at,updated_at
+    </sql>
+</mapper>

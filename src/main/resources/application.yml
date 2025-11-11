@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: mianshiyuan
+  profiles:
+    # 激活的配置文件，可以通过环境变量 SPRING_PROFILES_ACTIVE 覆盖
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  datasource:
+    # 数据库配置从 application-{profile}.yml 或环境变量读取
+    url: ${DB_URL:jdbc:mysql://localhost:3306/mianshiyuan?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&useUnicode=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      # Redis配置从 application-{profile}.yml 或环境变量读取
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  is-read-cookie: false
+  is-read-header: true
+  timeout: 900
+  active-timeout: -1
+  jwt-secret-key: "ReplaceWithYourStrongSecretKey_ChangeMe_!@#123"
+  token-style: jwt
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /index.html
+    url: /v3/api-docs
+    config-url: /v3/api-docs/swagger-config
+    display-request-duration: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+  packages-to-scan: com.tzy.mianshiyuan.controller
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+  basic:
+    enable: false

@@ -1,0 +1,46 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### 敏感配置文件（不提交到Git）###
+# 本地开发环境配置
+src/main/resources/application-local.yml
+# 生产环境配置
+src/main/resources/application-prod.yml
+# 其他环境配置（排除example模板文件）
+src/main/resources/application-*.yml
+!src/main/resources/application-*.yml.example
+# 环境变量文件
+.env
+.env.local
+.env.*.local

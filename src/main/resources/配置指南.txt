@@ -1,0 +1,43 @@
+==========================================
+配置文件安全设置指南
+==========================================
+
+⚠️ 重要：请立即创建本地配置文件，否则应用无法启动！
+
+步骤1：创建本地配置文件
+-------------------------
+复制配置模板并创建你的本地配置文件：
+
+Windows:
+  copy application-local.yml.example application-local.yml
+
+Linux/Mac:
+  cp application-local.yml.example application-local.yml
+
+步骤2：编辑配置文件
+-------------------------
+打开 application-local.yml，填写你的实际配置：
+
+spring:
+  datasource:
+    url: jdbc:mysql://你的数据库地址:3306/mianshiyuan?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&useUnicode=true
+    username: 你的数据库用户名
+    password: 你的数据库密码
+  data:
+    redis:
+      host: 你的Redis地址
+      port: 6379
+      password: 你的Redis密码
+      database: 0
+
+步骤3：验证配置
+-------------------------
+启动应用，检查是否能正常连接数据库和Redis。
+
+安全提示：
+- ✅ application-local.yml 已添加到 .gitignore，不会被提交到Git
+- ✅ 不要将包含真实密码的文件提交到Git
+- ✅ 生产环境建议使用环境变量或配置中心
+
+==========================================
+
