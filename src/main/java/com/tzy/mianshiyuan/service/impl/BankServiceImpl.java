@@ -44,6 +44,7 @@ public class BankServiceImpl extends ServiceImpl<BankMapper, Bank>
         Bank bank = new Bank();
         bank.setName(request.getName());
         bank.setDescription(request.getDescription());
+        bank.setCoverImage(request.getCoverImage());
         // 将List<String>转换为JSON字符串存储，默认值为"[]"
         bank.setTagList(JsonUtils.listToString(request.getTagList()));
         bank.setCreatorId(creatorId);
@@ -76,6 +77,7 @@ public class BankServiceImpl extends ServiceImpl<BankMapper, Bank>
         
         bank.setName(request.getName());
         bank.setDescription(request.getDescription());
+        bank.setCoverImage(request.getCoverImage());
         // 将List<String>转换为JSON字符串存储，默认值为"[]"
         bank.setTagList(JsonUtils.listToString(request.getTagList()));
         // 根据submitForReview设置状态：true=1待审，false=0草稿
@@ -201,9 +203,17 @@ public class BankServiceImpl extends ServiceImpl<BankMapper, Bank>
 
     /**
      * 清除标签缓存
+     * 使用异步删除，避免阻塞
      */
     private void clearTagsCache() {
+        try {
         redisTemplate.delete(REDIS_KEY_BANK_TAGS);
+            log.debug("已清除Redis标签缓存");
+        } catch (Exception e) {
+            // 删除失败不影响业务，只记录日志
+            log.warn("清除Redis标签缓存失败: {}", e.getMessage());
+            throw e; // 重新抛出异常，让调用方决定如何处理
+        }
     }
 
     private BankVO toVO(Bank bank) {

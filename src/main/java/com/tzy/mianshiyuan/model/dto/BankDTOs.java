@@ -11,6 +11,10 @@ public class BankDTOs {
         @NotBlank(message = "题库名称不能为空")
         private String name;
         private String description;
+        /**
+         * 头图URL
+         */
+        private String coverImage;
         private List<String> tagList;
         /**
          * 是否提交审核：true=提交审核（状态=1待审），false=保存草稿（状态=0草稿）
@@ -24,6 +28,10 @@ public class BankDTOs {
         @NotBlank(message = "题库名称不能为空")
         private String name;
         private String description;
+        /**
+         * 头图URL
+         */
+        private String coverImage;
         private List<String> tagList;
         /**
          * 是否提交审核：true=提交审核（状态=1待审），false=保存草稿（状态=0草稿）

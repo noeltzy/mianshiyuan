@@ -2,6 +2,7 @@ CREATE TABLE `bank` (
                         `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '题库ID',
                         `name` VARCHAR(100) NOT NULL COMMENT '题库名称',
                         `description` TEXT COMMENT '题库简介',
+                        `cover_image` VARCHAR(500) DEFAULT NULL COMMENT '头图URL',
                         `tag_list` VARCHAR(500) DEFAULT '[]' COMMENT '标签列表，JSON格式：["tag1","tag2"]',
                         `creator_id` BIGINT NOT NULL COMMENT '创建人ID',
                         `status` INT DEFAULT 0 COMMENT '状态：0草稿 1待审 2通过 3驳回',

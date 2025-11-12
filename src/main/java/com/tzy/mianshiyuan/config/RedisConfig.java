@@ -9,6 +9,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * Redis配置类
+ * 优化远程Redis连接，增加连接池和超时配置
  */
 @Configuration
 public class RedisConfig {
@@ -27,6 +28,9 @@ public class RedisConfig {
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);
+
+        // 启用事务支持（如果需要）
+        template.setEnableTransactionSupport(false);
 
         template.afterPropertiesSet();
         return template;

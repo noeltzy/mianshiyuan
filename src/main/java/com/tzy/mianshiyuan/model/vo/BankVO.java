@@ -9,6 +9,10 @@ public class BankVO {
     private Long id;
     private String name;
     private String description;
+    /**
+     * 头图URL
+     */
+    private String coverImage;
     private List<String> tagList;
     private Long creatorId;
     private Integer status;

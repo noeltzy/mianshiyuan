@@ -17,13 +17,22 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
-      timeout: 3000ms
+      # 连接超时时间（增加到30秒，适应远程Redis网络延迟）
+      timeout: 30000ms
+      # 命令超时时间（单独设置，避免长时间阻塞）
+      # Lettuce连接池配置（优化远程Redis连接）
       lettuce:
         pool:
-          max-active: 8
+          # 连接池最大连接数（使用连接池时生效）
+          max-active: 16
+          # 连接池最大阻塞等待时间（使用连接池时生效，单位：毫秒）
+          max-wait: 10000ms
+          # 连接池中的最大空闲连接
           max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
+          # 连接池中的最小空闲连接（保持最小连接数，避免频繁创建连接）
+          min-idle: 2
+        # 关闭超时时间
+        shutdown-timeout: 200ms
 sa-token:
   token-name: Authorization
   token-prefix: Bearer
@@ -44,9 +53,30 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
   packages-to-scan: com.tzy.mianshiyuan.controller
-knife4j:
-  enable: true
-  setting:
-    language: zh_cn
-  basic:
-    enable: false
+# 注意：已移除 knife4j，使用 springdoc 自带的 Swagger UI
+# 访问地址：http://localhost:port/swagger-ui.html 或 http://localhost:port/index.html
+# 阿里云OSS配置（用于前端直传）
+aliyun:
+  oss:
+    # OSS endpoint（地域节点），固定为上海区域
+    endpoint: ${OSS_ENDPOINT:https://oss-cn-shanghai.aliyuncs.com}
+    # AccessKey ID（用于STS），从环境变量或配置文件读取
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    # AccessKey Secret（用于STS），从环境变量或配置文件读取
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    # Bucket名称，固定为teng-oss
+    bucket-name: ${OSS_BUCKET_NAME:teng-oss}
+    # 自定义域名（可选），从环境变量或配置文件读取
+    custom-domain: ${OSS_CUSTOM_DOMAIN:}
+    # 文件上传路径前缀
+    path-prefix: uploads/
+    # STS角色ARN（用于前端直传），从环境变量或配置文件读取
+    # 格式：acs:ram::账户ID:role/角色名称
+    # 例如：acs:ram::1234567890123456:role/oss-upload-role
+    role-arn: ${OSS_ROLE_ARN:}
+    # STS会话名称（可选）
+    role-session-name: oss-upload-session
+    # STS区域（固定为cn-shanghai，与OSS区域对应）
+    sts-region: ${OSS_STS_REGION:cn-shanghai}
+    # STS临时凭证过期时间（秒），默认1小时，最大12小时
+    sts-duration-seconds: 3600

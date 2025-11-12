@@ -34,16 +34,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- OpenAPI + Knife4j -->
+        <!-- OpenAPI (SpringDoc) -->
+        <!-- Spring Boot 3.5.7 使用 Spring Framework 6.2.x，需要 springdoc 2.7.0+ -->
+        <!-- 注意：knife4j 4.5.0 不兼容 springdoc 2.7.0，且仓库中无 4.6.0+ 版本 -->
+        <!-- 已移除 knife4j，使用 springdoc 自带的 Swagger UI（功能完整） -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.7.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>4.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -84,6 +82,12 @@
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>3.5.14</version>
         </dependency>
+        <!-- MyBatis-Plus JSQLParser (3.5.9+ 版本分页插件需要，版本需与 MyBatis-Plus 保持一致) -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.14</version>
+        </dependency>
         <!-- Gson for JSON processing -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -94,6 +98,28 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <!-- Redis连接池依赖（Lettuce需要） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+        <!-- 阿里云OSS SDK -->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>3.17.3</version>
+        </dependency>
+        <!-- 阿里云STS SDK -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-core</artifactId>
+            <version>4.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-sts</artifactId>
+            <version>3.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -102,6 +128,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                    <!-- 注解处理器配置：让 Maven 自动从项目依赖中获取 lombok 版本 -->
+                    <!-- 注意：不需要指定版本号，Spring Boot 父 POM 会自动管理 lombok 版本 -->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

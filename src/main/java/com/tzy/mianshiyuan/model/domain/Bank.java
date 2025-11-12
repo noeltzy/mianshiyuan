@@ -30,6 +30,11 @@ public class Bank implements Serializable {
     private String description;
 
     /**
+     * 头图URL
+     */
+    private String coverImage;
+
+    /**
      * 标签列表（JSON格式：["tag1","tag2"]）
      */
     private String tagList;

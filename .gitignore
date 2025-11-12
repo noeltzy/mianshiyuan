@@ -32,10 +32,12 @@ build/
 ### VS Code ###
 .vscode/
 
+
 ### 敏感配置文件（不提交到Git）###
 # 本地开发环境配置
 src/main/resources/application-local.yml
 # 生产环境配置
+/docs/*
 src/main/resources/application-prod.yml
 # 其他环境配置（排除example模板文件）
 src/main/resources/application-*.yml
