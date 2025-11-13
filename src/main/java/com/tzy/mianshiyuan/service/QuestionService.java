@@ -1,7 +1,12 @@
 package com.tzy.mianshiyuan.service;
 
-import com.tzy.mianshiyuan.model.domain.Question;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tzy.mianshiyuan.model.domain.Question;
+import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
+import com.tzy.mianshiyuan.model.vo.QuestionVO;
+
+import java.util.List;
 
 /**
 * @author Windows11
@@ -10,4 +15,48 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface QuestionService extends IService<Question> {
 
+    /**
+     * 创建题目
+     * @param request 创建请求
+     * @param creatorId 创建人ID
+     * @param isAdmin 是否管理员
+     * @return 题目信息
+     */
+    QuestionVO createQuestion(QuestionDTOs.QuestionCreateRequest request, Long creatorId, boolean isAdmin);
+
+    /**
+     * 更新题目
+     * @param id 题目ID
+     * @param request 更新请求
+     * @param editorId 编辑人ID
+     * @param isAdmin 是否管理员
+     * @return 更新后的题目信息
+     */
+    QuestionVO updateQuestion(Long id, QuestionDTOs.QuestionUpdateRequest request, Long editorId, boolean isAdmin);
+
+    /**
+     * 根据ID查询题目
+     * @param id 题目ID
+     * @return 题目信息
+     */
+    QuestionVO getQuestionById(Long id);
+
+    /**
+     * 分页查询题目
+     * @param current 当前页码
+     * @param size 每页大小
+     * @param title 标题关键字
+     * @param tag 标签
+     * @param difficulty 难度
+     * @return 分页结果
+     */
+    Page<QuestionVO> listQuestions(long current, long size, String title, String tag, Integer difficulty, Long bankId);
+
+    /**
+     * 批量绑定题目到题库
+     * @param bankId 题库ID
+     * @param questionIdList 题目ID列表
+     * @param operatorId 操作者ID
+     */
+    void bindQuestionsToBank(Long bankId, List<Long> questionIdList, Long operatorId);
 }

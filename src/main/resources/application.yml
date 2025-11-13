@@ -33,6 +33,13 @@ spring:
           min-idle: 2
         # 关闭超时时间
         shutdown-timeout: 200ms
+  ai:
+    dashscope:
+      base-url: ${BASE_URL}
+      api-key: ${DASHSCOPE_API_KEY:}
+      chat:
+        options:
+          model: qwen3-max
 sa-token:
   token-name: Authorization
   token-prefix: Bearer
@@ -80,3 +87,9 @@ aliyun:
     sts-region: ${OSS_STS_REGION:cn-shanghai}
     # STS临时凭证过期时间（秒），默认1小时，最大12小时
     sts-duration-seconds: 3600
+server:
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8

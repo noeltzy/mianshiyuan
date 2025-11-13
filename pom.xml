@@ -28,12 +28,50 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <!-- 🔹 Spring AI 与 Spring AI Alibaba 的版本建议 -->
+        <spring-ai.version>1.0.1</spring-ai.version>
+        <spring-ai-alibaba.version>1.0.0.4</spring-ai-alibaba.version>
+
     </properties>
+
+
+    <!-- ✅ 关键改造点 -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring AI Alibaba BOM -->
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring AI BOM -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.alibaba.cloud.ai/spring-ai-alibaba-starter-dashscope -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+        </dependency>
+
+
         <!-- OpenAPI (SpringDoc) -->
         <!-- Spring Boot 3.5.7 使用 Spring Framework 6.2.x，需要 springdoc 2.7.0+ -->
         <!-- 注意：knife4j 4.5.0 不兼容 springdoc 2.7.0，且仓库中无 4.6.0+ 版本 -->

@@ -7,14 +7,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
-import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 
 /**
  * 请求日志过滤器
- * 用于包装Request和Response，使其可以多次读取
  * 优先级设置为最高，确保在其他过滤器之前执行
  */
 @Order(1)
@@ -37,16 +34,8 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 包装Request和Response，使其可以多次读取
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
-        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
-
-        try {
-            filterChain.doFilter(wrappedRequest, wrappedResponse);
-        } finally {
-            // 确保响应内容被写入到客户端
-            wrappedResponse.copyBodyToResponse();
-        }
+        // 直接传递请求和响应，不做任何包装
+        filterChain.doFilter(request, response);
     }
 }
 

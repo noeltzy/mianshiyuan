@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tzy.mianshiyuan.common.BaseResponse;
 import com.tzy.mianshiyuan.common.ResultUtils;
 import com.tzy.mianshiyuan.model.dto.BankDTOs;
+import com.tzy.mianshiyuan.model.dto.PageRequest;
 import com.tzy.mianshiyuan.model.vo.BankVO;
 import com.tzy.mianshiyuan.service.BankService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,11 +58,13 @@ public class BankController {
     @GetMapping
     @Operation(summary = "分页查询题库列表（无需登录）", description = "支持按名称模糊搜索和按标签筛选")
     public BaseResponse<Page<BankVO>> listBanks(
-            @RequestParam(defaultValue = "1") long current,
-            @RequestParam(defaultValue = "10") long size,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String tag) {
-        return ResultUtils.success(bankService.listBanks(current, size, name, tag));
+            @Valid @ModelAttribute PageRequest pageRequest,
+            @Valid @ModelAttribute BankDTOs.BankListRequest queryRequest) {
+        return ResultUtils.success(bankService.listBanks(
+                pageRequest.getCurrent(),
+                pageRequest.getSize(),
+                queryRequest.getName(),
+                queryRequest.getTag()));
     }
 
     @GetMapping("/tags")

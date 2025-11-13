@@ -40,5 +40,11 @@ public class BankDTOs {
          */
         private Boolean submitForReview = false;
     }
+
+    @Data
+    public static class BankListRequest {
+        private String name;
+        private String tag;
+    }
 }
 

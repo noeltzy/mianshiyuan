@@ -35,9 +35,8 @@ public class BankQuestion implements Serializable {
     private Integer sortOrder;
 
     /**
-     * 逻辑删除
+     * 不走逻辑删除 直接物理删除 中间表无需 留存
      */
-    @TableLogic
     private Integer deleted;
 
     /**
