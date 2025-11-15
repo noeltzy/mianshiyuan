@@ -37,9 +37,9 @@ spring:
     dashscope:
       base-url: ${BASE_URL}
       api-key: ${DASHSCOPE_API_KEY:}
-      chat:
-        options:
-          model: qwen3-max
+#      chat:
+#        options:
+#          model: qwen3-max
 sa-token:
   token-name: Authorization
   token-prefix: Bearer

@@ -63,5 +63,33 @@ public class QuestionDTOs {
         private Integer difficulty;
         private Long bankId;
     }
+
+    @Data
+    public static class BatchImportQuestionRequest{
+        /**
+         * 生成的题目数量
+         */
+        @Min(value = 1, message = "最少需要导入一题")
+        @Max(value = 20, message = "最多导入20题")
+        private Integer count;
+
+        @Min(value = 0, message = "难度最小为0")
+        @Max(value = 2, message = "难度最大为2")
+        private Integer difficulty;
+
+        @NotBlank(message = "请输入正确的题目主题")
+        private  String topic;
+        /**
+         * 是否需要创建题库
+         */
+        private Boolean createBank = false;
+        private List<String> BanktagList;
+        private String bankName;
+        private String description;
+        /**
+         * 绑定题库
+         */
+        private Long bankId;
+    }
 }
 

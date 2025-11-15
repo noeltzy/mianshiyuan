@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tzy.mianshiyuan.model.domain.Question;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
+import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
 
 import java.util.List;
@@ -59,4 +60,20 @@ public interface QuestionService extends IService<Question> {
      * @param operatorId 操作者ID
      */
     void bindQuestionsToBank(Long bankId, List<Long> questionIdList, Long operatorId);
+
+    /**
+     * 查询题库下的题目目录
+     * @param bankId 题库ID
+     * @return 题目目录列表
+     */
+    List<QuestionCatalogItemVO> listQuestionCatalogByBankId(Long bankId);
+
+    /**
+     * 分页查询当前用户创建的题目
+     * @param current 当前页码
+     * @param size 每页大小
+     * @param creatorId 创建人ID
+     * @return 分页结果
+     */
+    Page<QuestionVO> listMyQuestions(long current, long size, Long creatorId);
 }

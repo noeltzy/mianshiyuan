@@ -13,6 +13,7 @@ import com.tzy.mianshiyuan.model.domain.Question;
 import com.tzy.mianshiyuan.model.domain.Review;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
 import com.tzy.mianshiyuan.model.enums.QuestionDifficultyEnum;
+import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
 import com.tzy.mianshiyuan.service.BankQuestionService;
 import com.tzy.mianshiyuan.service.BankService;
@@ -24,9 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -246,6 +249,78 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
                 throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "绑定题目到题库失败");
             }
         }
+    }
+
+    @Override
+    public List<QuestionCatalogItemVO> listQuestionCatalogByBankId(Long bankId) {
+        if (bankId == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "题库ID不能为空");
+        }
+        Bank bank = bankService.getById(bankId);
+        if (bank == null || Objects.equals(bank.getDeleted(), 1)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND.getCode(), "题库不存在");
+        }
+
+        List<BankQuestion> relations = bankQuestionService.list(
+                new LambdaQueryWrapper<BankQuestion>()
+                        .eq(BankQuestion::getBankId, bankId)
+                        .orderByAsc(BankQuestion::getSortOrder)
+                        .orderByAsc(BankQuestion::getId));
+        if (CollectionUtils.isEmpty(relations)) {
+            return Collections.emptyList();
+        }
+
+        Set<Long> orderedQuestionIds = relations.stream()
+                .map(BankQuestion::getQuestionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (orderedQuestionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Question> questions = this.list(new LambdaQueryWrapper<Question>()
+                .in(Question::getId, orderedQuestionIds)
+                .eq(Question::getDeleted, 0));
+        if (questions.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<Long, Question> questionMap = questions.stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+
+        return orderedQuestionIds.stream()
+                .map(questionMap::get)
+                .filter(Objects::nonNull)
+                .map(question -> {
+                    QuestionCatalogItemVO vo = new QuestionCatalogItemVO();
+                    vo.setId(question.getId());
+                    vo.setTitle(question.getTitle());
+                    return vo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<QuestionVO> listMyQuestions(long current, long size, Long creatorId) {
+        if (creatorId == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "创建人ID不能为空");
+        }
+        
+        Page<Question> page = new Page<>(current, size);
+        LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
+        
+        // 查询指定用户创建的题目
+        queryWrapper.eq(Question::getCreatorId, creatorId);
+        queryWrapper.eq(Question::getDeleted, 0);
+        queryWrapper.orderByDesc(Question::getCreatedAt);
+        
+        Page<Question> questionPage = this.page(page, queryWrapper);
+        
+        Page<QuestionVO> voPage = new Page<>(current, size, questionPage.getTotal());
+        List<QuestionVO> voList = questionPage.getRecords().stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+        voPage.setRecords(voList);
+        return voPage;
     }
 
     private int resolveDifficulty(Integer difficulty) {
