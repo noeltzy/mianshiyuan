@@ -4,8 +4,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tzy.mianshiyuan.model.domain.Question;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
+import com.tzy.mianshiyuan.model.vo.QuestionAnswerVO;
 import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.util.List;
 
@@ -76,4 +79,6 @@ public interface QuestionService extends IService<Question> {
      * @return 分页结果
      */
     Page<QuestionVO> listMyQuestions(long current, long size, Long creatorId);
+
+    Page<QuestionAnswerVO> listMyQuestionsAnswer(long current, long size, Long userId);
 }

@@ -9,6 +9,7 @@ import com.tzy.mianshiyuan.common.ResultUtils;
 import com.tzy.mianshiyuan.model.dto.PageRequest;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
 import com.tzy.mianshiyuan.model.vo.CommentVO;
+import com.tzy.mianshiyuan.model.vo.QuestionAnswerVO;
 import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
 import com.tzy.mianshiyuan.service.CommentService;
@@ -112,6 +113,20 @@ public class QuestionController {
             @Valid @ModelAttribute PageRequest pageRequest) {
         Long userId = StpUtil.getLoginIdAsLong();
         return ResultUtils.success(questionService.listMyQuestions(
+                pageRequest.getCurrent(),
+                pageRequest.getSize(),
+                userId));
+    }
+
+
+    @GetMapping("/answer")
+    @SaCheckLogin
+    @Operation(summary = "分页查询我回答的题目以及答案（需要登录）",
+            description = "分页展示当前用户回答的所有题目和答案，无需任何参数")
+    public BaseResponse<Page<QuestionAnswerVO>> listMyQuestionsAnswer(
+            @Valid @ModelAttribute PageRequest pageRequest) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        return ResultUtils.success(questionService.listMyQuestionsAnswer(
                 pageRequest.getCurrent(),
                 pageRequest.getSize(),
                 userId));

@@ -2,5 +2,5 @@
 alwaysApply: true
 ---
 
-- 查询数据库时,软删已经由 mybaitis plus 实现 无需筛选
-- 枚举类命名规范 变量名+Emun
+- 查询数据库时,软删已经由 mb plus 实现 无需筛选
+- 枚举类命名规范 变量名+Enum

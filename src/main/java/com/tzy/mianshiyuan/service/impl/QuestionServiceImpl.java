@@ -6,13 +6,20 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tzy.mianshiyuan.common.ErrorCode;
 import com.tzy.mianshiyuan.common.JsonUtils;
 import com.tzy.mianshiyuan.exception.BusinessException;
+import com.tzy.mianshiyuan.mapper.AnswerRatingMapper;
+import com.tzy.mianshiyuan.mapper.CommentMapper;
 import com.tzy.mianshiyuan.mapper.QuestionMapper;
+import com.tzy.mianshiyuan.model.domain.AnswerRating;
 import com.tzy.mianshiyuan.model.domain.Bank;
 import com.tzy.mianshiyuan.model.domain.BankQuestion;
+import com.tzy.mianshiyuan.model.domain.Comment;
 import com.tzy.mianshiyuan.model.domain.Question;
 import com.tzy.mianshiyuan.model.domain.Review;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
+import com.tzy.mianshiyuan.model.enums.CommentTypeEmun;
 import com.tzy.mianshiyuan.model.enums.QuestionDifficultyEnum;
+import com.tzy.mianshiyuan.model.vo.AnswerRatingVO;
+import com.tzy.mianshiyuan.model.vo.QuestionAnswerVO;
 import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
 import com.tzy.mianshiyuan.service.BankQuestionService;
@@ -25,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -53,13 +61,19 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     private final ReviewService reviewService;
     private final BankService bankService;
     private final BankQuestionService bankQuestionService;
+    private final CommentMapper commentMapper;
+    private final AnswerRatingMapper answerRatingMapper;
 
     public QuestionServiceImpl(ReviewService reviewService,
                                BankService bankService,
-                               BankQuestionService bankQuestionService) {
+                               BankQuestionService bankQuestionService,
+                               CommentMapper commentMapper,
+                               AnswerRatingMapper answerRatingMapper) {
         this.reviewService = reviewService;
         this.bankService = bankService;
         this.bankQuestionService = bankQuestionService;
+        this.commentMapper = commentMapper;
+        this.answerRatingMapper = answerRatingMapper;
     }
 
     @Override
@@ -319,6 +333,138 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         List<QuestionVO> voList = questionPage.getRecords().stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+        voPage.setRecords(voList);
+        return voPage;
+    }
+
+    @Override
+    public Page<QuestionAnswerVO> listMyQuestionsAnswer(long current, long size, Long userId) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "用户ID不能为空");
+        }
+
+        // 查询用户的所有答案（不分页，用于按题目分组）
+        LambdaQueryWrapper<Comment> commentWrapper = new LambdaQueryWrapper<>();
+        commentWrapper.eq(Comment::getUserId, userId)
+                .eq(Comment::getCommentType, CommentTypeEmun.USER_ANSWER.getCode())
+                .eq(Comment::getIsDeleted, 0)
+                .orderByDesc(Comment::getCreatedAt);
+        List<Comment> allComments = commentMapper.selectList(commentWrapper);
+
+        if (allComments.isEmpty()) {
+            Page<QuestionAnswerVO> emptyPage = new Page<>(current, size, 0);
+            emptyPage.setRecords(Collections.emptyList());
+            return emptyPage;
+        }
+
+        // 提取questionId和commentId列表
+        List<Long> questionIds = allComments.stream()
+                .map(Comment::getQuestionId)
+                .distinct()
+                .collect(Collectors.toList());
+        List<Long> commentIds = allComments.stream()
+                .map(Comment::getId)
+                .collect(Collectors.toList());
+
+        // 批量查询题目信息
+        List<Question> questions = this.list(new LambdaQueryWrapper<Question>()
+                .in(Question::getId, questionIds)
+                .eq(Question::getDeleted, 0));
+        Map<Long, Question> questionMap = questions.stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+
+        // 批量查询评分信息
+        List<AnswerRating> ratings = answerRatingMapper.selectList(
+                new LambdaQueryWrapper<AnswerRating>()
+                        .in(AnswerRating::getCommentId, commentIds)
+                        .orderByDesc(AnswerRating::getCreatedAt));
+        Map<Long, List<AnswerRating>> ratingMap = ratings.stream()
+                .collect(Collectors.groupingBy(AnswerRating::getCommentId));
+
+        // 按题目分组答案
+        Map<Long, List<Comment>> commentsByQuestion = allComments.stream()
+                .collect(Collectors.groupingBy(Comment::getQuestionId));
+
+        // 构建所有题目的VO列表（按题目最新答案时间排序）
+        List<QuestionAnswerVO> allVoList = questionIds.stream()
+                .map(questionId -> {
+                    Question question = questionMap.get(questionId);
+                    if (question == null) {
+                        return null;
+                    }
+
+                    QuestionAnswerVO vo = new QuestionAnswerVO();
+                    vo.setId(question.getId());
+                    vo.setTitle(question.getTitle());
+
+                    // 收集该题目的所有答案和评分
+                    List<Comment> questionComments = commentsByQuestion.get(questionId);
+                    List<AnswerRatingVO> ratingVOList = new java.util.ArrayList<>();
+                    
+                    for (Comment comment : questionComments) {
+                        List<AnswerRating> commentRatings = ratingMap.getOrDefault(comment.getId(), Collections.emptyList());
+                        
+                        if (commentRatings.isEmpty()) {
+                            // 如果没有评分，也要显示答案
+                            AnswerRatingVO ratingVO = new AnswerRatingVO();
+                            ratingVO.setAnswer(comment.getContent());
+                            ratingVO.setFeedback(null);
+                            ratingVO.setScore(null);
+                            ratingVO.setCreatedAt(comment.getCreatedAt());
+                            ratingVOList.add(ratingVO);
+                        } else {
+                            // 如果有评分，每个评分一条记录，都包含答案内容
+                            for (AnswerRating rating : commentRatings) {
+                                AnswerRatingVO ratingVO = new AnswerRatingVO();
+                                ratingVO.setAnswer(comment.getContent());
+                                ratingVO.setFeedback(rating.getFeedback());
+                                ratingVO.setScore(rating.getScore());
+                                ratingVO.setCreatedAt(rating.getCreatedAt());
+                                ratingVOList.add(ratingVO);
+                            }
+                        }
+                    }
+
+                    // 按创建时间倒序排序
+                    ratingVOList.sort((a, b) -> {
+                        Date dateA = a.getCreatedAt();
+                        Date dateB = b.getCreatedAt();
+                        if (dateA == null && dateB == null) return 0;
+                        if (dateA == null) return 1;
+                        if (dateB == null) return -1;
+                        return dateB.compareTo(dateA);
+                    });
+
+                    vo.setAnswerRatingVOList(ratingVOList);
+                    return vo;
+                })
+                .filter(Objects::nonNull)
+                .sorted((a, b) -> {
+                    // 按题目最新答案时间倒序排序
+                    List<AnswerRatingVO> listA = a.getAnswerRatingVOList();
+                    List<AnswerRatingVO> listB = b.getAnswerRatingVOList();
+                    if (listA.isEmpty() && listB.isEmpty()) return 0;
+                    if (listA.isEmpty()) return 1;
+                    if (listB.isEmpty()) return -1;
+                    Date dateA = listA.get(0).getCreatedAt();
+                    Date dateB = listB.get(0).getCreatedAt();
+                    if (dateA == null && dateB == null) return 0;
+                    if (dateA == null) return 1;
+                    if (dateB == null) return -1;
+                    return dateB.compareTo(dateA);
+                })
+                .collect(Collectors.toList());
+
+        // 手动分页
+        long total = allVoList.size();
+        long start = (current - 1) * size;
+        long end = Math.min(start + size, total);
+        
+        List<QuestionAnswerVO> voList = start < total 
+                ? allVoList.subList((int)start, (int)end)
+                : Collections.emptyList();
+
+        Page<QuestionAnswerVO> voPage = new Page<>(current, size, total);
         voPage.setRecords(voList);
         return voPage;
     }

@@ -2,9 +2,11 @@ package com.tzy.mianshiyuan.service.impl;
 
 import com.tzy.mianshiyuan.common.ErrorCode;
 import com.tzy.mianshiyuan.exception.BusinessException;
+import com.tzy.mianshiyuan.mapper.AnswerRatingMapper;
 import com.tzy.mianshiyuan.mapper.CommentMapper;
 import com.tzy.mianshiyuan.mapper.QuestionMapper;
 import com.tzy.mianshiyuan.mapper.UserMapper;
+import com.tzy.mianshiyuan.model.domain.AnswerRating;
 import com.tzy.mianshiyuan.model.domain.Comment;
 import com.tzy.mianshiyuan.model.domain.Question;
 import com.tzy.mianshiyuan.model.domain.User;
@@ -15,7 +17,6 @@ import com.tzy.mianshiyuan.model.vo.CommentVO;
 import com.tzy.mianshiyuan.model.vo.UserVO;
 import com.tzy.mianshiyuan.service.AgentService;
 import com.tzy.mianshiyuan.service.CommentService;
-import com.tzy.mianshiyuan.util.GsonUtils;
 import com.tzy.mianshiyuan.util.UserConverter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -41,12 +42,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private final QuestionMapper questionMapper;
 
-    private AgentService agentService;
+    private final AgentService agentService;
 
-    public CommentServiceImpl(UserMapper userMapper,QuestionMapper questionMapper,AgentService agentService) {
+    private final AnswerRatingMapper answerRatingMapper;
+
+    public CommentServiceImpl(UserMapper userMapper, QuestionMapper questionMapper, AgentService agentService, AnswerRatingMapper answerRatingMapper) {
         this.userMapper = userMapper;
         this.questionMapper = questionMapper;
         this.agentService  = agentService;
+        this.answerRatingMapper = answerRatingMapper;
     }
 
     @Override
@@ -120,6 +124,16 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private void aiRating(Comment comment, Question question){
         AnswerRatingDTO answerRatingDTO = agentService.ratingAnswer(comment, question);
+        AnswerRating answerRating = new AnswerRating();
+        answerRating.setCommentId(comment.getId());
+        answerRating.setFeedback(answerRatingDTO.getFeedback());
+        answerRating.setScore(answerRatingDTO.getScore());
+        answerRating.setRaterType(0);
+        answerRating.setRaterId(2L);
+
+
+        answerRatingMapper.insert(answerRating);
+
         AddCommentRequest aiReplyRequest = new AddCommentRequest();
         aiReplyRequest.setQuestionId(question.getId());
         aiReplyRequest.setParentId(comment.getId());
