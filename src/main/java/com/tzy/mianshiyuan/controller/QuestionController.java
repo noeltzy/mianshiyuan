@@ -8,8 +8,10 @@ import com.tzy.mianshiyuan.common.BaseResponse;
 import com.tzy.mianshiyuan.common.ResultUtils;
 import com.tzy.mianshiyuan.model.dto.PageRequest;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
+import com.tzy.mianshiyuan.model.vo.CommentVO;
 import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
+import com.tzy.mianshiyuan.service.CommentService;
 import com.tzy.mianshiyuan.service.QuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,9 +26,11 @@ import java.util.List;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final CommentService commentService;
 
-    public QuestionController(QuestionService questionService) {
+    public QuestionController(QuestionService questionService, CommentService commentService) {
         this.questionService = questionService;
+        this.commentService = commentService;
     }
 
     @PostMapping
@@ -77,6 +81,16 @@ public class QuestionController {
     public BaseResponse<List<QuestionCatalogItemVO>> listQuestionCatalog(@RequestParam("id") Long bankId) {
         return ResultUtils.success(questionService.listQuestionCatalogByBankId(bankId));
     }
+
+    @GetMapping("/{questionId}/comments")
+    @SaCheckLogin
+    @Operation(summary = "获取题目评论列表（需要登录）",
+               description = "根据题目ID获取评论列表，支持嵌套回复结构")
+    public BaseResponse<List<CommentVO>> getQuestionComments(@PathVariable Long questionId) {
+        List<CommentVO> comments = commentService.getCommentsByQuestionId(questionId);
+        return ResultUtils.success(comments);
+    }
+
 
     @PostMapping("/bind")
     @SaCheckLogin

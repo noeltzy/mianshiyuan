@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tzy.mianshiyuan.mapper.AnswerRatingMapper">
+
+    <resultMap id="BaseResultMap" type="com.tzy.mianshiyuan.model.domain.AnswerRating">
+            <id property="id" column="id" />
+            <result property="commentId" column="comment_id" />
+            <result property="feedback" column="feedback" />
+            <result property="score" column="score" />
+            <result property="raterType" column="rater_type" />
+            <result property="raterId" column="rater_id" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,comment_id,feedback,score,rater_type,rater_id,
+        created_at,updated_at
+    </sql>
+</mapper>

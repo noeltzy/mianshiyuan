@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD COLUMN `nickname` VARCHAR(50) DEFAULT NULL COMMENT '用户昵称（可选）' AFTER `username`;

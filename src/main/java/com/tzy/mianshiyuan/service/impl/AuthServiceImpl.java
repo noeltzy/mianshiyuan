@@ -9,7 +9,7 @@ import com.tzy.mianshiyuan.model.enums.UserRole;
 import com.tzy.mianshiyuan.model.vo.UserVO;
 import com.tzy.mianshiyuan.service.AuthService;
 import com.tzy.mianshiyuan.service.UserService;
-import org.springframework.beans.BeanUtils;
+import com.tzy.mianshiyuan.util.UserConverter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -41,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(request.getPhone());
         user.setRole(UserRole.USER); // 注册时默认设置为普通用户
         userService.save(user);
-        return toVO(user);
+        return UserConverter.toVO(user);
     }
 
     @Override
@@ -91,13 +91,7 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
-        return toVO(user);
-    }
-
-    private UserVO toVO(User user) {
-        UserVO vo = new UserVO();
-        BeanUtils.copyProperties(user, vo);
-        return vo;
+        return UserConverter.toVO(user);
     }
 }
 

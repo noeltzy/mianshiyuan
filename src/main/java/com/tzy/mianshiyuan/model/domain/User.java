@@ -38,6 +38,11 @@ public class User implements Serializable {
      */
     private String avatarUrl;
 
+       /**
+    * 用户昵称（可选）
+    */
+   private String nickname;
+
     /**
      * 用户角色
      */

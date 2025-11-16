@@ -1,6 +1,11 @@
 package com.tzy.mianshiyuan.service.impl;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import com.tzy.mianshiyuan.model.domain.AnswerRating;
+import com.tzy.mianshiyuan.model.domain.Comment;
+import com.tzy.mianshiyuan.model.domain.Question;
+import com.tzy.mianshiyuan.model.dto.AddCommentRequest;
+import com.tzy.mianshiyuan.model.dto.AnswerRatingDTO;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
 import com.tzy.mianshiyuan.model.dto.QuestionGenerationRequest;
 import com.tzy.mianshiyuan.service.AgentService;
@@ -50,5 +55,29 @@ public class AgentServiceImpl implements AgentService {
                 .options(DashScopeChatOptions.builder().withModel("qwen-flash").build())
                 .call().entity(new ParameterizedTypeReference<List<QuestionDTOs.QuestionCreateRequest>>() {
                 });
+    }
+
+    @Override
+    public AnswerRatingDTO ratingAnswer(Comment addCommentRequest, Question question) {
+
+        String prompt = String.format("""
+                        请根据以下要求进行评分，并严格以 JSON格式返回：
+                        面试题题目：%s
+                        我的回答：%s
+                        1. JSON 数组的每个元素格式如下：
+                          {
+                            "feedback": "面试题回答反馈",
+                            "score": 99
+                          }
+                        2. 不允许在 JSON 外输出任何额外文字。
+                        3. 保证 JSON 完整合法，可直接解析。
+                        4. score范围0~100
+                        """, question.getTitle(),
+                addCommentRequest.getContent());
+        return client.prompt()
+                .system("你资深程序员面试官,需要帮助给我的面试题回答打分")
+                .user(prompt)
+                .options(DashScopeChatOptions.builder().withModel("qwen-flash").build())
+                .call().entity(AnswerRatingDTO.class);
     }
 }

@@ -15,10 +15,11 @@
             <result property="deleted" column="deleted" />
             <result property="createdAt" column="created_at" />
             <result property="updatedAt" column="updated_at" />
+               <result property="nickname" column="nickname" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,username,password,avatar_url,role,email,
+        id,username,nickname,password,avatar_url,role,email,
         phone,deleted,created_at,updated_at
     </sql>
 </mapper>
