@@ -6,7 +6,7 @@ CREATE TABLE `question` (
                             `answer` TEXT COMMENT '标准答案',
                             `difficulty` INT DEFAULT 1 COMMENT '难度：0简单 1中等 2困难',
                             `creator_id` BIGINT NOT NULL COMMENT '创建人ID',
-                                `status` INT DEFAULT 0 COMMENT '状态：0草稿 1待审 2通过 3驳回',
+                            `status` INT DEFAULT 0 COMMENT '状态：0草稿 1待审 2通过 3驳回',
                             `is_vip_only` TINYINT(1) DEFAULT 0 COMMENT '是否需要VIP才能查看：0否 1是',
                             `favorite_count` INT DEFAULT 0 COMMENT '收藏量',
                             `view_count` INT DEFAULT 0 COMMENT '查看量',

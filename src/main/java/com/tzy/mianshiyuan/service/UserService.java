@@ -2,6 +2,7 @@ package com.tzy.mianshiyuan.service;
 
 import com.tzy.mianshiyuan.model.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tzy.mianshiyuan.model.dto.UpdateUserRequest;
 
 /**
 * @author Zhuanz
@@ -12,4 +13,5 @@ public interface UserService extends IService<User> {
 
     User getByUsername(String username);
 
+    void updateUser(UpdateUserRequest request, Long userId);
 }

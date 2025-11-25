@@ -2,17 +2,12 @@ package com.tzy.mianshiyuan.service.impl;
 
 import com.tzy.mianshiyuan.common.ErrorCode;
 import com.tzy.mianshiyuan.exception.BusinessException;
-import com.tzy.mianshiyuan.mapper.AnswerRatingMapper;
-import com.tzy.mianshiyuan.mapper.CommentMapper;
-import com.tzy.mianshiyuan.mapper.QuestionMapper;
-import com.tzy.mianshiyuan.mapper.UserMapper;
-import com.tzy.mianshiyuan.model.domain.AnswerRating;
-import com.tzy.mianshiyuan.model.domain.Comment;
-import com.tzy.mianshiyuan.model.domain.Question;
-import com.tzy.mianshiyuan.model.domain.User;
+import com.tzy.mianshiyuan.mapper.*;
+import com.tzy.mianshiyuan.model.domain.*;
 import com.tzy.mianshiyuan.model.dto.AddCommentRequest;
 import com.tzy.mianshiyuan.model.dto.AnswerRatingDTO;
 import com.tzy.mianshiyuan.model.enums.CommentTypeEmun;
+import com.tzy.mianshiyuan.model.enums.UserSettingEnum;
 import com.tzy.mianshiyuan.model.vo.CommentVO;
 import com.tzy.mianshiyuan.model.vo.UserVO;
 import com.tzy.mianshiyuan.service.AgentService;
@@ -46,11 +41,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private final AnswerRatingMapper answerRatingMapper;
 
-    public CommentServiceImpl(UserMapper userMapper, QuestionMapper questionMapper, AgentService agentService, AnswerRatingMapper answerRatingMapper) {
+    private final UserSettingsMapper userSettingsMapper;
+
+    public CommentServiceImpl(UserMapper userMapper, QuestionMapper questionMapper, AgentService agentService, AnswerRatingMapper answerRatingMapper, UserSettingsMapper userSettingsMapper) {
         this.userMapper = userMapper;
         this.questionMapper = questionMapper;
         this.agentService  = agentService;
         this.answerRatingMapper = answerRatingMapper;
+        this.userSettingsMapper = userSettingsMapper;
     }
 
     @Override
@@ -123,7 +121,17 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     }
 
     private void aiRating(Comment comment, Question question){
-        AnswerRatingDTO answerRatingDTO = agentService.ratingAnswer(comment, question);
+
+        Long userId = comment.getUserId();
+        LambdaQueryWrapper<UserSettings> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(UserSettings::getUserId,userId);
+        lqw.eq(UserSettings::getSettingKey, UserSettingEnum.AI_REPLAY_STRICTNESS.getSettingKey());
+        UserSettings userSettings = userSettingsMapper.selectOne(lqw);
+        String strictness = userSettings == null ?
+                UserSettingEnum.AI_REPLAY_STRICTNESS.getDefaultValue():userSettings.getSettingKey();
+
+
+        AnswerRatingDTO answerRatingDTO = agentService.ratingAnswer(comment, question,strictness);
         AnswerRating answerRating = new AnswerRating();
         answerRating.setCommentId(comment.getId());
         answerRating.setFeedback(answerRatingDTO.getFeedback());

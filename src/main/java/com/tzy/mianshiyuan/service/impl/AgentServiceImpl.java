@@ -10,12 +10,13 @@ import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
 import com.tzy.mianshiyuan.model.dto.QuestionGenerationRequest;
 import com.tzy.mianshiyuan.service.AgentService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
+@Slf4j
 @Service
 public class AgentServiceImpl implements AgentService {
 
@@ -58,7 +59,8 @@ public class AgentServiceImpl implements AgentService {
     }
 
     @Override
-    public AnswerRatingDTO ratingAnswer(Comment addCommentRequest, Question question) {
+    public AnswerRatingDTO ratingAnswer(Comment addCommentRequest, Question question,String strictness) {
+        log.info(strictness);
 
         String prompt = String.format("""
                         请根据以下要求进行评分，并严格以 JSON格式返回：
@@ -75,7 +77,7 @@ public class AgentServiceImpl implements AgentService {
                         """, question.getTitle(),
                 addCommentRequest.getContent());
         return client.prompt()
-                .system("你资深程序员面试官,需要帮助给我的面试题回答打分")
+                .system("你资深程序员面试官,需要帮助给我的面试题回答打分,你需要按照 一定的严格度来评判与打分 1最轻松同时评价语气非常温和，3最严格同时评价语气最严格和不客气,你的严格度为:"+strictness)
                 .user(prompt)
                 .options(DashScopeChatOptions.builder().withModel("qwen-flash").build())
                 .call().entity(AnswerRatingDTO.class);

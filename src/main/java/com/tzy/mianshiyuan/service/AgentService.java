@@ -12,6 +12,6 @@ public interface AgentService {
 
      List<QuestionDTOs.QuestionCreateRequest> generateQuestions(QuestionGenerationRequest questionGenerationRequest);
 
-     AnswerRatingDTO ratingAnswer(Comment addCommentRequest, Question question);
+     AnswerRatingDTO ratingAnswer(Comment addCommentRequest, Question question,String strictness);
 
 }

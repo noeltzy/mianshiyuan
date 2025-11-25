@@ -2,6 +2,9 @@ package com.tzy.mianshiyuan.service;
 
 import com.tzy.mianshiyuan.model.domain.UserSettings;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tzy.mianshiyuan.model.vo.UserSettingVO;
+
+import java.util.List;
 
 /**
 * @author Windows11
@@ -10,4 +13,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface UserSettingsService extends IService<UserSettings> {
 
+    List<UserSettingVO> getMySettings(Long userId);
+
+    void updateSettings(List<UserSettingVO> request, Long userId);
 }

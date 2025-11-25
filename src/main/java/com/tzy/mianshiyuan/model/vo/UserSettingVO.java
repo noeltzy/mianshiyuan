@@ -25,6 +25,6 @@ public class UserSettingVO implements Serializable {
     /**
      * 设置值（支持字符串、数字、布尔值、JSON等）
      */
-    private Objects settingValue;
+    private String settingValue;
 
 }

@@ -1,6 +1,9 @@
 package com.tzy.mianshiyuan.model.enums;
 
+import com.tzy.mianshiyuan.common.ErrorCode;
+import com.tzy.mianshiyuan.exception.BusinessException;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * 用户设置枚举
@@ -13,7 +16,7 @@ public enum UserSettingEnum {
     /**
      * 是否默认展示答案
      */
-    AI_REPLAY_STRICTNESS("aiReplayStrictness", "3",  "回复严格读3最严格"),
+    AI_REPLAY_STRICTNESS("aiReplayStrictness", "3",  "回复严格度3最严格"),
     /**
      * 是否默认展示答案
      */
@@ -60,6 +63,22 @@ public enum UserSettingEnum {
         return null;
     }
 
+    /**
+     * 获取默认值
+     * @param en 枚举
+     * @param value 值
+     * @return 结果
+     */
+    public static String getDefaultValue(UserSettingEnum en, String value) {
+        if(en==null){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR);
+        }
+
+        if(StringUtils.isBlank(value)){
+            return en.defaultValue;
+        }
+        return value;
+    }
     /**
      * 判断设置键名是否有效
      * @param settingKey 设置键名
