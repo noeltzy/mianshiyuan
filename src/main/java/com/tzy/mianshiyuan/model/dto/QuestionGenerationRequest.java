@@ -8,6 +8,8 @@ import lombok.Data;
 public class QuestionGenerationRequest {
     public String topic;
 
+    public String desc;
+
     public int difficulty;
 
     public int count;

@@ -18,3 +18,8 @@ CREATE TABLE `comment` (
     KEY `idx_comment_type` (`comment_type`),
     KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评论表（支持嵌套回复，无需审核）';
+
+/**
+  用于定位用户回答 查出comment Id
+ */
+CREATE INDEX idx_comment_question_user ON comment (question_id, user_id, id);

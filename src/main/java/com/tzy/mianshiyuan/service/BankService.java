@@ -1,6 +1,7 @@
 package com.tzy.mianshiyuan.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tzy.mianshiyuan.common.BaseResponse;
 import com.tzy.mianshiyuan.model.domain.Bank;
 import com.tzy.mianshiyuan.model.dto.BankDTOs;
 import com.tzy.mianshiyuan.model.vo.BankVO;
@@ -53,4 +54,19 @@ public interface BankService extends IService<Bank> {
      * @return 标签列表，按包含该标签的题库数量降序排列
      */
     List<String> getAllTags();
+
+    /**
+     * 删除题库
+     * @param id 题库ID
+     */
+    void removeBank(Long id);
+
+    /**
+     * 分页查询用户创建的题库
+     * @param current 当前页
+     * @param size 每页大小
+     * @param creatorId 创建人ID
+     * @return 分页结果
+     */
+    Page<BankVO> listMyBanks(long current, long size, Long creatorId);
 }

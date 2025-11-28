@@ -28,6 +28,10 @@ public class Bank implements Serializable {
      * 题库简介
      */
     private String description;
+    /**
+     * 是否公开 0 私有 1公开
+     */
+    private Integer isPublic;
 
     /**
      * 头图URL

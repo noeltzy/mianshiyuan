@@ -15,3 +15,6 @@ CREATE TABLE `bank` (
 
 
 
+ALTER TABLE `bank`
+    ADD COLUMN `is_public`  TINYINT(1)  NOT NULL DEFAULT 1 COMMENT '是否公开'
+        AFTER `description`;

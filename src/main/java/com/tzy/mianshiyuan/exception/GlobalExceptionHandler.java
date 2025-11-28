@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotLoginException.class)
     public BaseResponse<Void> handleNotLoginException(NotLoginException e) {
         log.warn("未登录访问: {}", e.getMessage());
-        return ResultUtils.error(ErrorCode.NO_AUTH);
+        return ResultUtils.error(ErrorCode.NO_LOGIN);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

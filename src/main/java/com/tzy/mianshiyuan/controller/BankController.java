@@ -30,8 +30,7 @@ public class BankController {
 
     @PostMapping
     @SaCheckLogin
-    @SaCheckRole("ADMIN")
-    @Operation(summary = "创建题库（需要管理员权限）", 
+    @Operation(summary = "创建题库（需要登录）",
                description = "支持两种模式：1.保存草稿（submitForReview=false，状态=0） 2.提交审核（submitForReview=true，状态=1）")
     public BaseResponse<BankVO> createBank(@Valid @RequestBody BankDTOs.BankCreateRequest request) {
         Long creatorId = StpUtil.getLoginIdAsLong();
@@ -41,7 +40,7 @@ public class BankController {
     @PutMapping("/{id}")
     @SaCheckLogin
     @SaCheckRole("ADMIN")
-    @Operation(summary = "更新题库（需要管理员权限）", 
+    @Operation(summary = "更新题库（需要登录）",
                description = "任何状态的题库都可以更新。支持两种模式：1.保存草稿（submitForReview=false，状态=0） 2.提交审核（submitForReview=true，状态=1）")
     public BaseResponse<BankVO> updateBank(
             @PathVariable Long id,
@@ -71,6 +70,27 @@ public class BankController {
     @Operation(summary = "查询所有标签（无需登录）", description = "返回所有题库的标签列表，去重后按包含该标签的题库数量降序排列")
     public BaseResponse<List<String>> getAllTags() {
         return ResultUtils.success(bankService.getAllTags());
+    }
+
+    @DeleteMapping("/{id}")
+    @SaCheckLogin
+    @Operation(summary = "删除题库（需要登录）",
+            description = "管理员可删除任何题库，普通用户只能删除自己创建的题库。" +
+                    "删除时会解绑所有关联的题目（题目本身保留），如果题库处于待审状态会同时删除审核记录。")
+    public BaseResponse<Void> deleteBank(@PathVariable Long id) {
+        bankService.removeBank(id);
+        return ResultUtils.success();
+    }
+
+
+    @GetMapping("/my")
+    @SaCheckLogin
+    @Operation(summary = "分页查询我创建的题库（需要登录）",
+            description = "分页展示当前用户创建的所有题库")
+    public BaseResponse<Page<BankVO>> listMyBanks(
+            @Valid @ModelAttribute PageRequest pageRequest) {
+        Long loginId = StpUtil.getLoginIdAsLong();
+        return ResultUtils.success(bankService.listMyBanks(pageRequest.getCurrent(), pageRequest.getSize(), loginId));
     }
 }
 

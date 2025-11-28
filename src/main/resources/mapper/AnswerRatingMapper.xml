@@ -19,4 +19,12 @@
         id,comment_id,feedback,score,rater_type,rater_id,
         created_at,updated_at
     </sql>
+
+    <select id="selectMaxScoreByQuestionAndUser" resultType="java.math.BigDecimal">
+        SELECT MAX(ar.score)
+        FROM answer_rating ar
+                 JOIN comment c ON ar.comment_id = c.id
+        WHERE c.question_id = #{questionId}
+          AND c.user_id = #{userId}
+    </select>
 </mapper>

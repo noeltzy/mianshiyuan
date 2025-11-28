@@ -1,7 +1,9 @@
 package com.tzy.mianshiyuan.mapper;
 
-import com.tzy.mianshiyuan.model.domain.AnswerRating;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.tzy.mianshiyuan.model.domain.AnswerRating;
+import java.math.BigDecimal;
+import org.apache.ibatis.annotations.Param;
 
 /**
 * @author Windows11
@@ -10,7 +12,15 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.tzy.mianshiyuan.model.domain.AnswerRating
 */
 public interface AnswerRatingMapper extends BaseMapper<AnswerRating> {
-
+    /**
+     * 查询某题某用户的最高评分
+     *
+     * @param questionId 题目ID
+     * @param userId     回答者ID
+     * @return 最高得分，若无则返回 null
+     */
+    BigDecimal selectMaxScoreByQuestionAndUser(@Param("questionId") Long questionId,
+                                                @Param("userId") Long userId);
 }
 
 

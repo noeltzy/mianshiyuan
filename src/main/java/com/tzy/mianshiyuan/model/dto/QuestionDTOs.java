@@ -23,6 +23,12 @@ public class QuestionDTOs {
         @Max(value = 2, message = "难度最大为2")
         private Integer difficulty = 1;
         /**
+         * 是否公开：0私有 1公开，默认为1（公开）
+         */
+        @Min(value = 0, message = "isPublic 只能为 0 或 1")
+        @Max(value = 1, message = "isPublic 只能为 0 或 1")
+        private Integer isPublic = 1;
+        /**
          * 是否提交审核：true=提交审核（状态=1待审），false=保存草稿（状态=0草稿）
          * 默认为false（保存草稿）
          */
@@ -39,6 +45,7 @@ public class QuestionDTOs {
         @Min(value = 0, message = "难度最小为0")
         @Max(value = 2, message = "难度最大为2")
         private Integer difficulty = 1;
+
         /**
          * 是否提交审核：true=提交审核（状态=1待审），false=保存草稿（状态=0草稿）
          * 默认为false（保存草稿）
@@ -54,6 +61,15 @@ public class QuestionDTOs {
         private List<Long> questionIdList;
     }
 
+
+    @Data
+    public static class QuestionBatchUnbindRequest {
+        @NotNull(message = "题库ID不能为空")
+        private Long bankId;
+        @NotEmpty(message = "题目ID列表不能为空")
+        private List<Long> questionIdList;
+    }
+
     @Data
     public static class QuestionListRequest {
         private String title;
@@ -62,6 +78,12 @@ public class QuestionDTOs {
         @Max(value = 2, message = "难度最大为2")
         private Integer difficulty;
         private Long bankId;
+        /**
+         * 是否公开：0私有 1公开（用于"我的题目"接口筛选）
+         */
+        @Min(value = 0, message = "isPublic 只能为 0 或 1")
+        @Max(value = 1, message = "isPublic 只能为 0 或 1")
+        private Integer isPublic;
     }
 
     @Data

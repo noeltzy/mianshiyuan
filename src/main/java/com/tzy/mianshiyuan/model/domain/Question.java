@@ -57,6 +57,11 @@ public class Question implements Serializable {
     private Integer status;
 
     /**
+     * 是否公开：0私有 1公开
+     */
+    private Integer isPublic;
+
+    /**
      * 是否需要VIP才能查看：0否 1是
      */
     private Integer isVipOnly;

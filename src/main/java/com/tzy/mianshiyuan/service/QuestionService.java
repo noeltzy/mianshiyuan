@@ -3,6 +3,7 @@ package com.tzy.mianshiyuan.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tzy.mianshiyuan.model.domain.Question;
+import com.tzy.mianshiyuan.model.dto.PageRequest;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
 import com.tzy.mianshiyuan.model.vo.QuestionAnswerVO;
 import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
@@ -47,14 +48,10 @@ public interface QuestionService extends IService<Question> {
 
     /**
      * 分页查询题目
-     * @param current 当前页码
-     * @param size 每页大小
-     * @param title 标题关键字
-     * @param tag 标签
-     * @param difficulty 难度
+
      * @return 分页结果
      */
-    Page<QuestionVO> listQuestions(long current, long size, String title, String tag, Integer difficulty, Long bankId);
+    Page<QuestionVO> listQuestions(PageRequest pageRequest, QuestionDTOs.QuestionListRequest queryRequest,Long userId);
 
     /**
      * 批量绑定题目到题库
@@ -63,6 +60,14 @@ public interface QuestionService extends IService<Question> {
      * @param operatorId 操作者ID
      */
     void bindQuestionsToBank(Long bankId, List<Long> questionIdList, Long operatorId);
+
+    /**
+     * 批量解绑题目与题库
+     * @param bankId 题库ID
+     * @param questionIdList 题目ID列表
+     * @return 实际解绑数量
+     */
+    int unbindQuestionsFromBank(Long bankId, List<Long> questionIdList);
 
     /**
      * 查询题库下的题目目录
@@ -76,9 +81,10 @@ public interface QuestionService extends IService<Question> {
      * @param current 当前页码
      * @param size 每页大小
      * @param creatorId 创建人ID
+     * @param isPublic 是否公开（可选，用于筛选）
      * @return 分页结果
      */
-    Page<QuestionVO> listMyQuestions(long current, long size, Long creatorId);
+    Page<QuestionVO> listMyQuestions(long current, long size, Long creatorId, Integer isPublic);
 
     Page<QuestionAnswerVO> listMyQuestionsAnswer(long current, long size, Long userId);
 }

@@ -14,9 +14,11 @@ import com.tzy.mianshiyuan.model.vo.QuestionCatalogItemVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
 import com.tzy.mianshiyuan.service.CommentService;
 import com.tzy.mianshiyuan.service.QuestionService;
+import com.tzy.mianshiyuan.util.GsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/question")
 @Tag(name = "题目接口", description = "题目的增改查及绑定功能")
+@Slf4j
 public class QuestionController {
 
     private final QuestionService questionService;
@@ -67,13 +70,13 @@ public class QuestionController {
     public BaseResponse<Page<QuestionVO>> listQuestions(
             @Valid @ModelAttribute PageRequest pageRequest,
             @Valid @ModelAttribute QuestionDTOs.QuestionListRequest queryRequest) {
-        return ResultUtils.success(questionService.listQuestions(
-                pageRequest.getCurrent(),
-                pageRequest.getSize(),
-                queryRequest.getTitle(),
-                queryRequest.getTag(),
-                queryRequest.getDifficulty(),
-                queryRequest.getBankId()));
+        Long userId =null;
+        String idString =(String) StpUtil.getLoginIdDefaultNull();
+        if(idString !=null){
+            userId = Long.parseLong(idString);
+        }
+        Page<QuestionVO> questionVOPage = questionService.listQuestions(pageRequest, queryRequest, userId);
+        return ResultUtils.success(questionVOPage);
     }
 
     @GetMapping("/catalog")
@@ -105,17 +108,32 @@ public class QuestionController {
         return ResultUtils.success(true);
     }
 
+
+
+    @PostMapping("/unbind")
+    @SaCheckLogin
+    @SaCheckRole("ADMIN")
+    @Operation(summary = "批量解绑题目与题库（管理员）",
+            description = "将题目批量从题库中解绑，不存在的绑定关系会自动忽略，返回实际解绑数量")
+    public BaseResponse<Integer> unbindQuestionsFromBank(
+            @Valid @RequestBody QuestionDTOs.QuestionBatchUnbindRequest request) {
+        int unbindCount = questionService.unbindQuestionsFromBank(request.getBankId(), request.getQuestionIdList());
+        return ResultUtils.success(unbindCount);
+    }
+
     @GetMapping("/my")
     @SaCheckLogin
     @Operation(summary = "分页查询我创建的题目（需要登录）",
-               description = "分页展示当前用户创建的所有题目，无需任何参数")
+               description = "分页展示当前用户创建的所有题目，支持按公开状态筛选")
     public BaseResponse<Page<QuestionVO>> listMyQuestions(
-            @Valid @ModelAttribute PageRequest pageRequest) {
+            @Valid @ModelAttribute PageRequest pageRequest,
+            @Valid @ModelAttribute QuestionDTOs.QuestionListRequest queryRequest) {
         Long userId = StpUtil.getLoginIdAsLong();
         return ResultUtils.success(questionService.listMyQuestions(
                 pageRequest.getCurrent(),
                 pageRequest.getSize(),
-                userId));
+                userId,
+                queryRequest.getIsPublic()));
     }
 
 

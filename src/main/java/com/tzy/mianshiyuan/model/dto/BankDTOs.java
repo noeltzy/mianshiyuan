@@ -1,5 +1,6 @@
 package com.tzy.mianshiyuan.model.dto;
 
+import com.tzy.mianshiyuan.constant.BankConstants;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import java.util.List;
@@ -21,6 +22,14 @@ public class BankDTOs {
          * 默认为false（保存草稿）
          */
         private Boolean submitForReview = false;
+
+        private Integer isPublic = BankConstants.PUBLIC;
+
+        // 生成 参数
+        private Boolean generateByAI;
+
+        private QuestionGenerateParam questionGenerateParam;
+
     }
 
     @Data

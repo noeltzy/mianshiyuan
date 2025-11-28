@@ -13,3 +13,9 @@ CREATE TABLE `answer_rating` (
     KEY `idx_rater_id` (`rater_id`),
     KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='回答评分表';
+
+/**
+ 用于查询 最高分数
+ */
+
+CREATE INDEX idx_answer_rating_comment_score ON answer_rating (comment_id, score DESC);

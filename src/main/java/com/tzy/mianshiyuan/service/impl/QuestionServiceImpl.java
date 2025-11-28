@@ -1,20 +1,24 @@
 package com.tzy.mianshiyuan.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tzy.mianshiyuan.common.ErrorCode;
 import com.tzy.mianshiyuan.common.JsonUtils;
+import com.tzy.mianshiyuan.constant.QuestionConstants;
 import com.tzy.mianshiyuan.exception.BusinessException;
 import com.tzy.mianshiyuan.mapper.AnswerRatingMapper;
 import com.tzy.mianshiyuan.mapper.CommentMapper;
 import com.tzy.mianshiyuan.mapper.QuestionMapper;
 import com.tzy.mianshiyuan.model.domain.AnswerRating;
+import com.tzy.mianshiyuan.constant.QuestionExtMapKey;
 import com.tzy.mianshiyuan.model.domain.Bank;
 import com.tzy.mianshiyuan.model.domain.BankQuestion;
 import com.tzy.mianshiyuan.model.domain.Comment;
 import com.tzy.mianshiyuan.model.domain.Question;
 import com.tzy.mianshiyuan.model.domain.Review;
+import com.tzy.mianshiyuan.model.dto.PageRequest;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
 import com.tzy.mianshiyuan.model.enums.CommentTypeEmun;
 import com.tzy.mianshiyuan.model.enums.QuestionDifficultyEnum;
@@ -27,12 +31,15 @@ import com.tzy.mianshiyuan.service.BankService;
 import com.tzy.mianshiyuan.service.QuestionService;
 import com.tzy.mianshiyuan.service.ReviewService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -65,6 +72,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     private final AnswerRatingMapper answerRatingMapper;
 
     public QuestionServiceImpl(ReviewService reviewService,
+                               @Lazy
                                BankService bankService,
                                BankQuestionService bankQuestionService,
                                CommentMapper commentMapper,
@@ -90,15 +98,24 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         question.setViewCount(0);
         question.setIsVipOnly(0);
 
-        boolean submitForReview = Boolean.TRUE.equals(request.getSubmitForReview());
-        question.setStatus(determineStatus(submitForReview, isAdmin));
+        // 设置公开状态，默认为公开
+        question.setIsPublic(request.getIsPublic() != null ? request.getIsPublic() : QuestionConstants.PUBLIC);
+
+        // 私有题目强制跳过审核，直接通过
+        if (QuestionConstants.PRIVATE.equals(question.getIsPublic())) {
+            question.setStatus(STATUS_APPROVED);
+        } else {
+            boolean submitForReview = Boolean.TRUE.equals(request.getSubmitForReview());
+            question.setStatus(determineStatus(submitForReview, isAdmin));
+        }
 
         boolean saved = this.save(question);
         if (!saved) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "创建题目失败");
         }
 
-        if (submitForReview) {
+        // 公开题目且提交审核时创建审核记录
+        if (QuestionConstants.PUBLIC.equals(question.getIsPublic()) && Boolean.TRUE.equals(request.getSubmitForReview())) {
             Review review = buildReviewRecord(question.getId(), creatorId, isAdmin);
             boolean reviewSaved = reviewService.save(review);
             if (!reviewSaved) {
@@ -132,10 +149,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         question.setAnswer(request.getAnswer());
         question.setDifficulty(resolveDifficulty(request.getDifficulty()));
 
-        boolean submitForReview = Boolean.TRUE.equals(request.getSubmitForReview());
-        question.setStatus(determineStatus(submitForReview, isAdmin));
-        if (!submitForReview) {
+        // 私有题目强制跳过审核，直接通过
+        if (QuestionConstants.PRIVATE.equals(question.getIsPublic())) {
+            question.setStatus(STATUS_APPROVED);
             question.setReviewId(null);
+        } else {
+            boolean submitForReview = Boolean.TRUE.equals(request.getSubmitForReview());
+            question.setStatus(determineStatus(submitForReview, isAdmin));
+            if (!submitForReview) {
+                question.setReviewId(null);
+            }
         }
 
         boolean updated = this.updateById(question);
@@ -143,7 +166,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "更新题目失败");
         }
 
-        if (submitForReview) {
+        // 公开题目且提交审核时创建审核记录
+        if (QuestionConstants.PUBLIC.equals(question.getIsPublic()) && Boolean.TRUE.equals(request.getSubmitForReview())) {
             Review review = buildReviewRecord(question.getId(), editorId, isAdmin);
             boolean reviewSaved = reviewService.save(review);
             if (!reviewSaved) {
@@ -165,11 +189,46 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         if (question == null || Objects.equals(question.getDeleted(), 1)) {
             throw new BusinessException(ErrorCode.NOT_FOUND.getCode(), "题目不存在");
         }
+        
+        // 权限校验：问题5-A
+        // 公开且审核通过：所有人可见
+        if (QuestionConstants.PUBLIC.equals(question.getIsPublic()) && QuestionConstants.STATUS_APPROVED.equals(question.getStatus())) {
+            return toVO(question);
+        }
+        
+        // 获取当前登录用户ID
+        Long currentUserId = StpUtil.getLoginId(1L);
+        
+        // 公开但未审核通过：仅创建者和管理员可见
+        if (QuestionConstants.PUBLIC.equals(question.getIsPublic())) {
+            boolean isCreator = currentUserId != null && Objects.equals(question.getCreatorId(), currentUserId);
+            boolean isAdmin = currentUserId != null && StpUtil.hasRole("ADMIN");
+            if (isCreator || isAdmin) {
+                return toVO(question);
+            }
+            throw new BusinessException(ErrorCode.NOT_FOUND.getCode(), "题目不存在");
+        }
+        
+        // 私有题目：仅创建者可见
+        if (QuestionConstants.PRIVATE.equals(question.getIsPublic())) {
+            boolean isCreator = currentUserId != null && Objects.equals(question.getCreatorId(), currentUserId);
+            if (isCreator) {
+                return toVO(question);
+            }
+            throw new BusinessException(ErrorCode.NOT_FOUND.getCode(), "题目不存在");
+        }
+        
         return toVO(question);
     }
 
     @Override
-    public Page<QuestionVO> listQuestions(long current, long size, String title, String tag, Integer difficulty, Long bankId) {
+    public Page<QuestionVO> listQuestions(PageRequest pageRequest,QuestionDTOs.QuestionListRequest queryRequest,Long userId) {
+        long current = pageRequest.getCurrent();
+        long size = pageRequest.getSize();
+        String title = queryRequest.getTitle();
+        String tag = queryRequest.getTag();
+        Integer difficulty = queryRequest.getDifficulty();
+        Long bankId = queryRequest.getBankId();
         Page<Question> page = new Page<>(current, size);
         LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
 
@@ -199,7 +258,10 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
                     .collect(Collectors.toSet());
             queryWrapper.in(Question::getId, questionIds);
         }
-        queryWrapper.eq(Question::getDeleted, 0);
+        
+        // 问题4-B：公开列表只显示公开且审核通过的题目
+        queryWrapper.eq(Question::getIsPublic, QuestionConstants.PUBLIC);
+        queryWrapper.eq(Question::getStatus, STATUS_APPROVED);
         queryWrapper.orderByDesc(Question::getCreatedAt);
 
         Page<Question> questionPage = this.page(page, queryWrapper);
@@ -208,6 +270,25 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         List<QuestionVO> voList = questionPage.getRecords().stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+
+        // 如果当前用户登录 也就是 userId 非 null 在VO中的extMap填入bestScore
+        List<Long> questionIdList = voList.stream().map(QuestionVO::getId).toList();
+        if (userId != null && !questionIdList.isEmpty()) {
+            for (QuestionVO vo : voList) {
+                BigDecimal bestScore = answerRatingMapper.selectMaxScoreByQuestionAndUser(vo.getId(), userId);
+                if (bestScore == null) {
+                    continue;
+                }
+                Map<String, String> extMap = vo.getExtMap();
+                if (extMap == null) {
+                    extMap = new HashMap<>();
+                    vo.setExtMap(extMap);
+                }
+                extMap.put(QuestionExtMapKey.BEST_SCORE, bestScore.stripTrailingZeros().toPlainString());
+            }
+        }
+
+
         voPage.setRecords(voList);
         return voPage;
     }
@@ -266,6 +347,38 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int unbindQuestionsFromBank(Long bankId, List<Long> questionIdList) {
+        // 1. 参数校验
+        if (bankId == null || CollectionUtils.isEmpty(questionIdList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "题库ID或题目列表不能为空");
+        }
+
+        // 2. 校验题库是否存在
+        Bank bank = bankService.getById(bankId);
+        if (bank == null || Objects.equals(bank.getDeleted(), 1)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND.getCode(), "题库不存在");
+        }
+
+        // 3. 去重题目ID
+        List<Long> distinctQuestionIds = questionIdList.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (distinctQuestionIds.isEmpty()) {
+            return 0;
+        }
+
+        // 4. 物理删除绑定关系（不存在的绑定关系会被忽略）
+        LambdaQueryWrapper<BankQuestion> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(BankQuestion::getBankId, bankId)
+                .in(BankQuestion::getQuestionId, distinctQuestionIds);
+
+        return bankQuestionService.getBaseMapper().delete(deleteWrapper);
+    }
+
+    @Override
     public List<QuestionCatalogItemVO> listQuestionCatalogByBankId(Long bankId) {
         if (bankId == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "题库ID不能为空");
@@ -292,9 +405,18 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             return Collections.emptyList();
         }
 
-        List<Question> questions = this.list(new LambdaQueryWrapper<Question>()
+        // 问题7-A：根据题库的公开状态过滤题目
+        LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
                 .in(Question::getId, orderedQuestionIds)
-                .eq(Question::getDeleted, 0));
+                .eq(Question::getDeleted, 0);
+        
+        // 公开题库只显示公开题目
+        if (com.tzy.mianshiyuan.constant.BankConstants.PUBLIC.equals(bank.getIsPublic())) {
+            questionWrapper.eq(Question::getIsPublic, QuestionConstants.PUBLIC);
+        }
+        // 私有题库（创建者访问）显示所有题目
+        
+        List<Question> questions = this.list(questionWrapper);
         if (questions.isEmpty()) {
             return Collections.emptyList();
         }
@@ -314,7 +436,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     }
 
     @Override
-    public Page<QuestionVO> listMyQuestions(long current, long size, Long creatorId) {
+    public Page<QuestionVO> listMyQuestions(long current, long size, Long creatorId, Integer isPublic) {
         if (creatorId == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "创建人ID不能为空");
         }
@@ -325,6 +447,12 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         // 查询指定用户创建的题目
         queryWrapper.eq(Question::getCreatorId, creatorId);
         queryWrapper.eq(Question::getDeleted, 0);
+        
+        // 问题6-B：支持按 isPublic 筛选
+        if (isPublic != null) {
+            queryWrapper.eq(Question::getIsPublic, isPublic);
+        }
+        
         queryWrapper.orderByDesc(Question::getCreatedAt);
         
         Page<Question> questionPage = this.page(page, queryWrapper);

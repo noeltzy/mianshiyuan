@@ -48,10 +48,10 @@ public class AuthServiceImpl implements AuthService {
     public AuthDTOs.TokenResponse login(AuthDTOs.LoginRequest request) {
         User user = userService.getByUsername(request.getUsername());
         if (user == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND.getCode(), "用户不存在");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "用户不存在");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BusinessException(ErrorCode.NO_AUTH.getCode(), "账号或密码错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.getCode(), "账号或密码错误");
         }
         StpUtil.login(user.getId());
         AuthDTOs.TokenResponse resp = new AuthDTOs.TokenResponse();
@@ -70,7 +70,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthDTOs.TokenResponse refresh() {
         if (!StpUtil.isLogin()) {
-            throw new BusinessException(ErrorCode.NO_AUTH);
+            throw new BusinessException(ErrorCode.NO_LOGIN);
         }
         Object loginId = StpUtil.getLoginIdDefaultNull();
         StpUtil.logout();
@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserVO currentUser() {
         if (!StpUtil.isLogin()) {
-            throw new BusinessException(ErrorCode.NO_AUTH);
+            throw new BusinessException(ErrorCode.NO_LOGIN);
         }
         Long uid = StpUtil.getLoginIdAsLong();
         User user = userService.getById(uid);

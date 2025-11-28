@@ -50,9 +50,8 @@ public class Review implements Serializable {
     private String comments;
 
     /**
-     * 逻辑删除：0正常 1删除
+     * 删除标记：0正常 1删除（物理删除，不走逻辑删除）
      */
-    @TableLogic
     private Integer deleted;
 
     /**
