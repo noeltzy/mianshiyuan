@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tzy.mianshiyuan.common.ErrorCode;
 import com.tzy.mianshiyuan.common.JsonUtils;
 import com.tzy.mianshiyuan.constant.QuestionConstants;
+import com.tzy.mianshiyuan.constant.ReviewConstants;
 import com.tzy.mianshiyuan.exception.BusinessException;
 import com.tzy.mianshiyuan.mapper.AnswerRatingMapper;
 import com.tzy.mianshiyuan.mapper.CommentMapper;
@@ -17,9 +18,10 @@ import com.tzy.mianshiyuan.model.domain.Bank;
 import com.tzy.mianshiyuan.model.domain.BankQuestion;
 import com.tzy.mianshiyuan.model.domain.Comment;
 import com.tzy.mianshiyuan.model.domain.Question;
-import com.tzy.mianshiyuan.model.domain.Review;
 import com.tzy.mianshiyuan.model.dto.PageRequest;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
+import com.tzy.mianshiyuan.model.dto.ReviewContext;
+import com.tzy.mianshiyuan.model.dto.ReviewResult;
 import com.tzy.mianshiyuan.model.enums.CommentTypeEmun;
 import com.tzy.mianshiyuan.model.enums.QuestionDifficultyEnum;
 import com.tzy.mianshiyuan.model.vo.AnswerRatingVO;
@@ -55,15 +57,6 @@ import java.util.stream.Collectors;
 @Service
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     implements QuestionService {
-
-    private static final int CONTENT_TYPE_QUESTION = 2;
-    private static final int REVIEW_RESULT_PENDING = 0;
-    private static final int REVIEW_RESULT_PASS = 1;
-    private static final int REVIEWER_TYPE_MANUAL = 1;
-    private static final String ADMIN_REVIEW_COMMENT = "管理员上传自动审核通过";
-    private static final int STATUS_DRAFT = 0;
-    private static final int STATUS_PENDING = 1;
-    private static final int STATUS_APPROVED = 2;
 
     private final ReviewService reviewService;
     private final BankService bankService;
@@ -103,7 +96,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
 
         // 私有题目强制跳过审核，直接通过
         if (QuestionConstants.PRIVATE.equals(question.getIsPublic())) {
-            question.setStatus(STATUS_APPROVED);
+            question.setStatus(QuestionConstants.STATUS_APPROVED);
         } else {
             boolean submitForReview = Boolean.TRUE.equals(request.getSubmitForReview());
             question.setStatus(determineStatus(submitForReview, isAdmin));
@@ -114,17 +107,19 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "创建题目失败");
         }
 
-        // 公开题目且提交审核时创建审核记录
-        if (QuestionConstants.PUBLIC.equals(question.getIsPublic()) && Boolean.TRUE.equals(request.getSubmitForReview())) {
-            Review review = buildReviewRecord(question.getId(), creatorId, isAdmin);
-            boolean reviewSaved = reviewService.save(review);
-            if (!reviewSaved) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "创建题目审核记录失败");
-            }
-            question.setReviewId(review.getId());
-            // 管理员自动审核通过时同步更新题目状态
-            if (isAdmin) {
-                question.setStatus(STATUS_APPROVED);
+        // 处理审核流程
+        ReviewResult reviewResult = reviewService.processReview(ReviewContext.builder()
+                .contentId(question.getId())
+                .contentType(ReviewConstants.CONTENT_TYPE_QUESTION)
+                .operatorId(creatorId)
+                .isAdmin(isAdmin)
+                .isPublic(QuestionConstants.PUBLIC.equals(question.getIsPublic()))
+                .submitForReview(Boolean.TRUE.equals(request.getSubmitForReview()))
+                .build());
+        if (reviewResult.isNeedsUpdate()) {
+            question.setReviewId(reviewResult.getReviewId());
+            if (reviewResult.isAutoApproved()) {
+                question.setStatus(QuestionConstants.STATUS_APPROVED);
             }
             this.updateById(question);
         }
@@ -151,7 +146,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
 
         // 私有题目强制跳过审核，直接通过
         if (QuestionConstants.PRIVATE.equals(question.getIsPublic())) {
-            question.setStatus(STATUS_APPROVED);
+            question.setStatus(QuestionConstants.STATUS_APPROVED);
             question.setReviewId(null);
         } else {
             boolean submitForReview = Boolean.TRUE.equals(request.getSubmitForReview());
@@ -166,16 +161,19 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "更新题目失败");
         }
 
-        // 公开题目且提交审核时创建审核记录
-        if (QuestionConstants.PUBLIC.equals(question.getIsPublic()) && Boolean.TRUE.equals(request.getSubmitForReview())) {
-            Review review = buildReviewRecord(question.getId(), editorId, isAdmin);
-            boolean reviewSaved = reviewService.save(review);
-            if (!reviewSaved) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "创建题目审核记录失败");
-            }
-            question.setReviewId(review.getId());
-            if (isAdmin) {
-                question.setStatus(STATUS_APPROVED);
+        // 处理审核流程
+        ReviewResult reviewResult = reviewService.processReview(ReviewContext.builder()
+                .contentId(question.getId())
+                .contentType(ReviewConstants.CONTENT_TYPE_QUESTION)
+                .operatorId(editorId)
+                .isAdmin(isAdmin)
+                .isPublic(QuestionConstants.PUBLIC.equals(question.getIsPublic()))
+                .submitForReview(Boolean.TRUE.equals(request.getSubmitForReview()))
+                .build());
+        if (reviewResult.isNeedsUpdate()) {
+            question.setReviewId(reviewResult.getReviewId());
+            if (reviewResult.isAutoApproved()) {
+                question.setStatus(QuestionConstants.STATUS_APPROVED);
             }
             this.updateById(question);
         }
@@ -261,7 +259,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         
         // 问题4-B：公开列表只显示公开且审核通过的题目
         queryWrapper.eq(Question::getIsPublic, QuestionConstants.PUBLIC);
-        queryWrapper.eq(Question::getStatus, STATUS_APPROVED);
+        queryWrapper.eq(Question::getStatus, QuestionConstants.STATUS_APPROVED);
         queryWrapper.orderByDesc(Question::getCreatedAt);
 
         Page<Question> questionPage = this.page(page, queryWrapper);
@@ -603,26 +601,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
 
     private int determineStatus(boolean submitForReview, boolean isAdmin) {
         if (!submitForReview) {
-            return STATUS_DRAFT;
+            return QuestionConstants.STATUS_DRAFT;
         }
-        return isAdmin ? STATUS_APPROVED : STATUS_PENDING;
-    }
-
-    private Review buildReviewRecord(Long questionId, Long operatorId, boolean isAdmin) {
-        Review review = new Review();
-        review.setContentId(questionId);
-        review.setContentType(CONTENT_TYPE_QUESTION);
-        review.setReviewerType(REVIEWER_TYPE_MANUAL);
-        if (isAdmin) {
-            review.setReviewerId(operatorId);
-            review.setResult(REVIEW_RESULT_PASS);
-            review.setComments(ADMIN_REVIEW_COMMENT);
-        } else {
-            review.setReviewerId(null);
-            review.setResult(REVIEW_RESULT_PENDING);
-            review.setComments("用户提交待审核");
-        }
-        return review;
+        return isAdmin ? QuestionConstants.STATUS_APPROVED : QuestionConstants.STATUS_PENDING;
     }
 
     private QuestionVO toVO(Question question) {

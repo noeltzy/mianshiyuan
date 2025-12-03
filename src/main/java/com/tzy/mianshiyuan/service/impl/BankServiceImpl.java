@@ -10,12 +10,14 @@ import com.tzy.mianshiyuan.common.ErrorCode;
 import com.tzy.mianshiyuan.common.JsonUtils;
 import com.tzy.mianshiyuan.constant.BankConstants;
 import com.tzy.mianshiyuan.constant.QuestionConstants;
+import com.tzy.mianshiyuan.constant.ReviewConstants;
 import com.tzy.mianshiyuan.exception.BusinessException;
 import com.tzy.mianshiyuan.model.domain.Bank;
-import com.tzy.mianshiyuan.model.domain.Review;
 import com.tzy.mianshiyuan.model.dto.BankDTOs;
 import com.tzy.mianshiyuan.model.dto.QuestionDTOs;
 import com.tzy.mianshiyuan.model.dto.QuestionGenerationRequest;
+import com.tzy.mianshiyuan.model.dto.ReviewContext;
+import com.tzy.mianshiyuan.model.dto.ReviewResult;
 import com.tzy.mianshiyuan.model.vo.BankVO;
 import com.tzy.mianshiyuan.model.vo.QuestionVO;
 import com.tzy.mianshiyuan.model.domain.BankQuestion;
@@ -49,13 +51,6 @@ public class BankServiceImpl extends ServiceImpl<BankMapper, Bank>
 
     private static final String REDIS_KEY_BANK_TAGS = "bank:tags:all";
     private static final long CACHE_EXPIRE_HOURS = 1; // 缓存过期时间：1小时
-
-    // 审核相关常量
-    private static final int CONTENT_TYPE_BANK = 1;
-    private static final int REVIEW_RESULT_PENDING = 0;
-    private static final int REVIEW_RESULT_PASS = 1;
-    private static final int REVIEWER_TYPE_MANUAL = 1;
-    private static final String ADMIN_REVIEW_COMMENT = "管理员上传自动审核通过";
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final AgentService agentService;
@@ -125,16 +120,18 @@ public class BankServiceImpl extends ServiceImpl<BankMapper, Bank>
         }
         Long newBankId = bank.getId();
 
-        // 公开题库且提交审核时创建审核记录
-        if (BankConstants.PUBLIC.equals(bank.getIsPublic()) && Boolean.TRUE.equals(request.getSubmitForReview())) {
-            Review review = buildReviewRecord(bank.getId(), creatorId, isAdmin);
-            boolean reviewSaved = reviewService.save(review);
-            if (!reviewSaved) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "创建题库审核记录失败");
-            }
-            bank.setReviewId(review.getId());
-            // 管理员自动审核通过时同步更新题库状态
-            if (isAdmin) {
+        // 处理审核流程
+        ReviewResult reviewResult = reviewService.processReview(ReviewContext.builder()
+                .contentId(bank.getId())
+                .contentType(ReviewConstants.CONTENT_TYPE_BANK)
+                .operatorId(creatorId)
+                .isAdmin(isAdmin)
+                .isPublic(BankConstants.PUBLIC.equals(bank.getIsPublic()))
+                .submitForReview(Boolean.TRUE.equals(request.getSubmitForReview()))
+                .build());
+        if (reviewResult.isNeedsUpdate()) {
+            bank.setReviewId(reviewResult.getReviewId());
+            if (reviewResult.isAutoApproved()) {
                 bank.setStatus(BankConstants.PASS);
             }
             this.updateById(bank);
@@ -278,15 +275,18 @@ public class BankServiceImpl extends ServiceImpl<BankMapper, Bank>
             throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "更新题库失败");
         }
         
-        // 公开题库且提交审核时创建审核记录
-        if (BankConstants.PUBLIC.equals(bank.getIsPublic()) && Boolean.TRUE.equals(request.getSubmitForReview())) {
-            Review review = buildReviewRecord(bank.getId(), editorId, isAdmin);
-            boolean reviewSaved = reviewService.save(review);
-            if (!reviewSaved) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR.getCode(), "创建题库审核记录失败");
-            }
-            bank.setReviewId(review.getId());
-            if (isAdmin) {
+        // 处理审核流程
+        ReviewResult reviewResult = reviewService.processReview(ReviewContext.builder()
+                .contentId(bank.getId())
+                .contentType(ReviewConstants.CONTENT_TYPE_BANK)
+                .operatorId(editorId)
+                .isAdmin(isAdmin)
+                .isPublic(BankConstants.PUBLIC.equals(bank.getIsPublic()))
+                .submitForReview(Boolean.TRUE.equals(request.getSubmitForReview()))
+                .build());
+        if (reviewResult.isNeedsUpdate()) {
+            bank.setReviewId(reviewResult.getReviewId());
+            if (reviewResult.isAutoApproved()) {
                 bank.setStatus(BankConstants.PASS);
             }
             this.updateById(bank);
@@ -498,26 +498,6 @@ public class BankServiceImpl extends ServiceImpl<BankMapper, Bank>
             return BankConstants.DRAFT;
         }
         return isAdmin ? BankConstants.PASS : BankConstants.SUBMIT;
-    }
-
-    /**
-     * 构建审核记录
-     */
-    private Review buildReviewRecord(Long bankId, Long operatorId, boolean isAdmin) {
-        Review review = new Review();
-        review.setContentId(bankId);
-        review.setContentType(CONTENT_TYPE_BANK);
-        review.setReviewerType(REVIEWER_TYPE_MANUAL);
-        if (isAdmin) {
-            review.setReviewerId(operatorId);
-            review.setResult(REVIEW_RESULT_PASS);
-            review.setComments(ADMIN_REVIEW_COMMENT);
-        } else {
-            review.setReviewerId(null);
-            review.setResult(REVIEW_RESULT_PENDING);
-            review.setComments("用户提交待审核");
-        }
-        return review;
     }
 
     private BankVO toVO(Bank bank) {
